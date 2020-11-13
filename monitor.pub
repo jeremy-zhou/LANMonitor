@@ -1,0 +1,10 @@
+[pub]
+cmd = /log/con/driver
+
+[data]
+$who = driver
+$debug = 1
+$driver_name = crash_monitor
+$wan_ip = 127.0.0.1
+$lan_ip = 127.0.0.1
+
