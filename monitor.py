@@ -50,16 +50,8 @@ def check_sign(sign_args, i_type, conn):
     log_local(returnmsg)
 
 
-def encoding(area, ip, packet_type, conn):
+def encoding(report, crash_data, packet_type, conn):
     
-    report = {}
-    report["cmd"] = "/log/report/driver"
-
-    crash_data = {}
-    crash_data["$timestamp"] = int(time.time())
-    crash_data["$log_type"] = "crash"
-    crash_data["area"] = area
-    crash_data["machine_name"] = ip
 
     json_str = json.dumps(crash_data)
     json_str = json_str.replace(' ','')
@@ -69,8 +61,7 @@ def encoding(area, ip, packet_type, conn):
     b64 = b64.decode('utf-8')
     log_local(b64)
 
-    data = {}
-    data['log'] = b64
+    data = { 'log':b64 }
     report['data'] = data
 
     json_str = json.dumps(report)
@@ -214,7 +205,14 @@ packet_type = 1
 tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcp_sock.connect((conf['host'], conf['port']))
 check_sign(form_sign(conf), packet_type, tcp_sock)
-encoding('hb4', '192.168.2.241', 1, tcp_sock)
+report = {}
+report['cmd'] = conf['log_cmd']
+crash_data = {}
+crash_data['$timestamp'] = int(time.time())
+crash_data['$log_type'] = 'crash'
+crash_data['area'] = conf['area']
+crash_data['machine_name'] = '192.168.2.241'
+encoding(report, crash_data, 1, tcp_sock)
 tcp_sock.close()
 sys.exit(1)
 
