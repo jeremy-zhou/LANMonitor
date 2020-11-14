@@ -65,6 +65,7 @@ def encoding(report, crash_data, packet_type, conn):
     report['data'] = data
 
     json_str = json.dumps(report)
+    log_local(json_str)
     json_str_len = len(json_str)
     log_local(json_str_len)
     data_len_4bytes = json_str_len.to_bytes(4, 'big')
@@ -167,17 +168,17 @@ class Monitor (threading.Thread):
                     self.queue.put(ip_ping) 
                     self.lock.release()
             index = (index + 1) % len(self.ip_list)
-            time.sleep(0.1)
+            time.sleep(2)
 
 class msgSender (threading.Thread):
 
-    def __init__(self, name, lock, queue, arg_host, arg_port):
+    def __init__(self, name, lock, queue, conf, packet_type):
         threading.Thread.__init__(self)
         self.name = name
         self.lock = lock
         self.queue = queue
-        self.r_addr = (arg_host,arg_port)
-        print(self.r_addr)
+        self.packet_type = packet_type
+        self.conf = conf
 
     def run(self):
         ip_crash = None
@@ -189,45 +190,42 @@ class msgSender (threading.Thread):
             self.lock.release()
             
             if ip_crash:
-                tcp_c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                tcp_c.connect(self.r_addr)
-                tcp_c.send(bytes(ip_crash.encode('utf-8')))
-                tcp_c.shutdown(socket.SHUT_WR)
-                tcp_c.close()
+                tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                tcp_sock.connect((self.conf['host'], self.conf['port']))
+
+                check_sign(form_sign(self.conf), self.packet_type, tcp_sock)
+
+                report = {}
+                report['cmd'] = self.conf['log_cmd']
+                crash_data = {}
+                crash_data['$timestamp'] = int(time.time())
+                crash_data['$log_type'] = self.conf['$log_type']
+                crash_data['area'] = self.conf['area']
+                crash_data['machine_name'] = ip_crash
+                encoding(report, crash_data, self.packet_type, tcp_sock)
+
+                tcp_sock.close()
+
                 ip_crash = None
 
-            time.sleep(0.1)
+            time.sleep(0.5)
 
 conf = read_conf("./monitor.conf")
 ip_all = read_ip_list("./monitor.ip_list")
 
 packet_type = 1
 
-tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-tcp_sock.connect((conf['host'], conf['port']))
-check_sign(form_sign(conf), packet_type, tcp_sock)
-report = {}
-report['cmd'] = conf['log_cmd']
-crash_data = {}
-crash_data['$timestamp'] = int(time.time())
-crash_data['$log_type'] = conf['$log_type']
-crash_data['area'] = conf['area']
-crash_data['machine_name'] = '192.168.2.240'
-encoding(report, crash_data, 1, tcp_sock)
-tcp_sock.close()
-sys.exit(1)
-
 lock = threading.Lock()
 Q = queue.Queue(0)
-conn_t = msgSender("conn-thread", lock, Q, args['host'], args['port'])
+#Q.put('192.168.2.90')
+#Q.put('192.168.2.91')
+conn_t = msgSender("conn-thread", lock, Q, conf, packet_type)
 conn_t.start()
 
-task_list = [ip_all[i:i+args['cnt_per_t']] for i in range(0, len(ip_all), args['cnt_per_t'])]
-print(task_list)
+task_list = [ip_all[i:i+conf['ip_cnt_per_thread']] for i in range(0, len(ip_all), conf['ip_cnt_per_thread'])]
 for task in task_list:
-    t_tmp = Monitor("", lock, Q, task, args['ping_count'], args['ping_timeo'], args['pulse_count'])
+    t_tmp = Monitor("", lock, Q, task, conf['ping_count'], conf['ping_timeout'], conf['pulse_thresh'])
     t_tmp.start()
-
 
 
 conn_t.join()
