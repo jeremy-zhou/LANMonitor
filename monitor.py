@@ -114,6 +114,7 @@ def read_conf(conf_file):
     conf['area']     = p['report']['area']
     conf['sign_cmd'] = p['report']['sign_cmd']
     conf['log_cmd']  = p['report']['log_cmd']
+    conf['$log_type']  = p['report']['$log_type']
     conf['$debug']   = int(p['report']['$debug'])
     conf['$who']     = p['report']['$who']
     conf['$driver_name'] = p['report']['$driver_name']
@@ -209,9 +210,9 @@ report = {}
 report['cmd'] = conf['log_cmd']
 crash_data = {}
 crash_data['$timestamp'] = int(time.time())
-crash_data['$log_type'] = 'crash'
+crash_data['$log_type'] = conf['$log_type']
 crash_data['area'] = conf['area']
-crash_data['machine_name'] = '192.168.2.241'
+crash_data['machine_name'] = '192.168.2.240'
 encoding(report, crash_data, 1, tcp_sock)
 tcp_sock.close()
 sys.exit(1)
