@@ -14,6 +14,8 @@ import json
 import bz2
 import base64
 
+EXIT_FLAG = 0
+
 def time_now_str():
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -160,7 +162,8 @@ class Monitor (threading.Thread):
 
     def run(self):
         index = 0;
-        while 1:
+        exit = 0;
+        while exit == 0:
             ip_ping = self.ip_list[index]
             process = subprocess.Popen(['ping', ip_ping, '-c', str(self.ping_c), '-W', str(self.ping_o)],
                     stdout = subprocess.PIPE,
@@ -177,6 +180,11 @@ class Monitor (threading.Thread):
             index = (index + 1) % len(self.ip_list)
             time.sleep(2)
 
+            self.lock.acquire()
+            exit = EXIT_FLAG
+            self.lock.release()
+        log_local('%s exits' % self.name)
+
 class msgSender (threading.Thread):
 
     def __init__(self, name, lock, queue, conf, packet_type):
@@ -189,7 +197,10 @@ class msgSender (threading.Thread):
 
     def run(self):
         ip_crash = None
-        while 1:
+
+        exit = 0;
+
+        while exit == 0:
 
             self.lock.acquire()
             if self.queue.qsize():
@@ -218,6 +229,12 @@ class msgSender (threading.Thread):
 
             time.sleep(0.5)
 
+            self.lock.acquire()
+            exit = EXIT_FLAG
+            self.lock.release()
+
+        log_local('%s exits' % self.name)
+
 conf = read_conf("./monitor.conf")
 ip_all = read_ip_list("./monitor.ip_list")
 
@@ -231,9 +248,23 @@ conn_t = msgSender("conn-thread", lock, Q, conf, packet_type)
 conn_t.start()
 
 task_list = [ip_all[i:i+conf['ip_cnt_per_thread']] for i in range(0, len(ip_all), conf['ip_cnt_per_thread'])]
+t_list = []
 for i in range(len(task_list)):
     t_tmp = Monitor('thread-%s' % i, lock, Q, task_list[i], conf['ping_count'], conf['ping_timeout'], conf['pulse_thresh'])
+    t_list.append(t_tmp)
     t_tmp.start()
 
+try:
+    conn_t.join()
+except KeyboardInterrupt:
+    lock.acquire()
+    EXIT_FLAG = 1
+    lock.release()
 
 conn_t.join()
+for t in t_list:
+    t.join()
+
+log_local('all cleaned')
+sys.exit(0)
+
