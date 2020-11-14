@@ -4,6 +4,7 @@ import threading
 import time
 import queue
 import configparser
+import datetime
 import sys
 import os
 import socket
@@ -13,8 +14,13 @@ import json
 import bz2
 import base64
 
+def time_now_str():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 def log_local(s):
-    print(s)
+    with open('/tmp/monitor.log', 'a+', encoding='utf8') as log:
+        log.write('%s ' % time_now_str())
+        log.write('%s\n' % s)
 
 
 def check_sign(sign_args, i_type, conn):
@@ -144,7 +150,8 @@ class Monitor (threading.Thread):
         self.queue = queue
         self.ip_list = ip_list
         self.ip_state = {}
-        print(self.ip_list)
+        log_local(self.name)
+        log_local(self.ip_list)
         for ip in self.ip_list:
             self.ip_state[ip] = 0
         self.ping_c = ping_c
@@ -190,6 +197,7 @@ class msgSender (threading.Thread):
             self.lock.release()
             
             if ip_crash:
+                log_local('%s is down' % ip_crash)
                 tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 tcp_sock.connect((self.conf['host'], self.conf['port']))
 
