@@ -231,8 +231,8 @@ conn_t = msgSender("conn-thread", lock, Q, conf, packet_type)
 conn_t.start()
 
 task_list = [ip_all[i:i+conf['ip_cnt_per_thread']] for i in range(0, len(ip_all), conf['ip_cnt_per_thread'])]
-for task in task_list:
-    t_tmp = Monitor("", lock, Q, task, conf['ping_count'], conf['ping_timeout'], conf['pulse_thresh'])
+for i in range(len(task_list)):
+    t_tmp = Monitor('thread-%s' % i, lock, Q, task_list[i], conf['ping_count'], conf['ping_timeout'], conf['pulse_thresh'])
     t_tmp.start()
 
 
