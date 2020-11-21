@@ -50,9 +50,9 @@ def check_sign(sign_args, i_type, conn):
     data_len_4bytes = json_str_len.to_bytes(4, 'big')
     type_4bytes = i_type.to_bytes(4, 'big')
     
-    conn.send(data_len_4bytes)
-    conn.send(type_4bytes)
-    conn.send(bytes(json_str.encode('utf-8')))
+    conn.sendall(data_len_4bytes)
+    conn.sendall(type_4bytes)
+    conn.sendall(bytes(json_str.encode('utf-8')))
     returnmsg = conn.recv(128)
     returnmsg = returnmsg.decode('utf-8')
     log_local(returnmsg)
@@ -79,9 +79,9 @@ def encoding(report, crash_data, packet_type, conn):
     data_len_4bytes = json_str_len.to_bytes(4, 'big')
     type_4bytes = packet_type.to_bytes(4, 'big')
     
-    conn.send(data_len_4bytes)
-    conn.send(type_4bytes)
-    conn.send(bytes(json_str.encode('utf-8')))
+    conn.sendall(data_len_4bytes)
+    conn.sendall(type_4bytes)
+    conn.sendall(bytes(json_str.encode('utf-8')))
     returnmsg = conn.recv(128)
     log_local(returnmsg.decode('utf-8'))
 
@@ -176,7 +176,7 @@ class Monitor (threading.Thread):
                 if self.ip_state[ip_ping] == self.pulse:
                     self.lock.acquire()
                     self.queue.put(ip_ping) 
-                    log_local('%s is down' % ip_crash)
+                    log_local('%s is down' % ip_ping)
                     self.lock.release()
             index = (index + 1) % len(self.ip_list)
             time.sleep(2)
@@ -210,30 +210,30 @@ class msgSender (threading.Thread):
             
             if ip_crash:
                 tcp_sock = None
-		while 1:
-			try:
-                		tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                		tcp_sock.connect((self.conf['host'], self.conf['port']))
-			except socket.timeout as e:
-				log_local('failed to connect to log server, reason: {0}'.format(e))
-				tcp_sock.close()
-				tcp_sock = None
-			except socket.error as e:
-				log_local('failed to connect to log server, reason: {0}'.format(e))
-				tcp_sock.close()
-				tcp_sock = None
-			else:
-				log_local('success to connect to log server')
-				break
-			time.sleep(2)
-			ef = 0
-			self.lock.acquire()
-            		ef = EXIT_FLAG
-            		self.lock.release()
-			if ef == 1:
-				log_local('{0} exits'.format(self.name))
-				return
-			continue
+                while 1:
+                    try:
+                        tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        tcp_sock.connect((self.conf['host'], self.conf['port']))
+                    except socket.timeout as e:
+                        log_local('failed to connect to log server, reason: {0}'.format(e))
+                        tcp_sock.close()
+                        tcp_sock = None
+                    except socket.error as e:
+                        log_local('failed to connect to log server, reason: {0}'.format(e))
+                        tcp_sock.close()
+                        tcp_sock = None
+                    else:
+                        log_local('success to connect to log server')
+                        break
+                    time.sleep(2)
+                    ef = 0
+                    self.lock.acquire()
+                    ef = EXIT_FLAG
+                    self.lock.release()
+                    if ef == 1:
+                        log_local('{0} exits'.format(self.name))
+                        return
+                    continue
 
                 check_sign(form_sign(self.conf), self.packet_type, tcp_sock)
 
