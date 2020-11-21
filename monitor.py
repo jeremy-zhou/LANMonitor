@@ -176,6 +176,7 @@ class Monitor (threading.Thread):
                 if self.ip_state[ip_ping] == self.pulse:
                     self.lock.acquire()
                     self.queue.put(ip_ping) 
+                    log_local('%s is down' % ip_crash)
                     self.lock.release()
             index = (index + 1) % len(self.ip_list)
             time.sleep(2)
@@ -208,9 +209,31 @@ class msgSender (threading.Thread):
             self.lock.release()
             
             if ip_crash:
-                log_local('%s is down' % ip_crash)
-                tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                tcp_sock.connect((self.conf['host'], self.conf['port']))
+                tcp_sock = None
+		while 1:
+			try:
+                		tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                		tcp_sock.connect((self.conf['host'], self.conf['port']))
+			except socket.timeout as e:
+				log_local('failed to connect to log server, reason: {0}'.format(e))
+				tcp_sock.close()
+				tcp_sock = None
+			except socket.error as e:
+				log_local('failed to connect to log server, reason: {0}'.format(e))
+				tcp_sock.close()
+				tcp_sock = None
+			else:
+				log_local('success to connect to log server')
+				break
+			time.sleep(2)
+			ef = 0
+			self.lock.acquire()
+            		ef = EXIT_FLAG
+            		self.lock.release()
+			if ef == 1:
+				log_local('{0} exits'.format(self.name))
+				return
+			continue
 
                 check_sign(form_sign(self.conf), self.packet_type, tcp_sock)
 
@@ -235,8 +258,8 @@ class msgSender (threading.Thread):
 
         log_local('%s exits' % self.name)
 
-conf = read_conf("./monitor.conf")
-ip_all = read_ip_list("./monitor.ip_list")
+conf = read_conf("/etc/crash_monitor/monitor.conf")
+ip_all = read_ip_list("/etc/crash_monitor/monitor.ip_list")
 
 packet_type = 1
 
