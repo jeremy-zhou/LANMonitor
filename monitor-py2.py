@@ -265,7 +265,7 @@ class msgSender (threading.Thread):
         log_local('%s exits' % self.name)
 
 conf = read_conf("/etc/crash_monitor/monitor.conf")
-ip_all = read_ip_list("/etc//crash_monitor/monitor.ip_list")
+ip_all = read_ip_list("/etc/crash_monitor/monitor.ip_list")
 
 packet_type = 1
 
