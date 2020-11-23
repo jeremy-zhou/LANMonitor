@@ -21,6 +21,8 @@ def time_now_str():
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 def log_local(s):
+    print(s)
+    return
     with open('/tmp/monitor.log', 'a+') as log:
         log.write('%s ' % time_now_str())
         log.write('%s\n' % s)
@@ -61,8 +63,9 @@ def check_sign(sign_args, packet_type, conn):
 
 def encoding(report, crash_data, packet_type, conn):
     
-
-    json_str = json.dumps(crash_data)
+    data_list = []
+    data_list.append(crash_data)
+    json_str = json.dumps(data_list)
     json_str = json_str.replace(' ','')
     log_local(json_str)
     json_str = bz2.compress(json_str.encode('utf-8'))
@@ -264,8 +267,8 @@ class msgSender (threading.Thread):
 
         log_local('%s exits' % self.name)
 
-conf = read_conf("/etc/crash_monitor/monitor.conf")
-ip_all = read_ip_list("/etc/crash_monitor/monitor.ip_list")
+conf = read_conf("./monitor.conf")
+ip_all = read_ip_list("./monitor.ip_list")
 
 packet_type = 1
 
