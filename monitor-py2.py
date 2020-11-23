@@ -285,6 +285,7 @@ try:
 	while 1:
     		time.sleep(5)
 except KeyboardInterrupt as e:
+	log_local('ctrl c interrupt')
 	pass
 lock.acquire()
 EXIT_FLAG = 1
@@ -295,4 +296,4 @@ for t in t_list:
     t.join()
 
 log_local('all cleaned')
-#sys.exit(0)
+sys.exit(0)
