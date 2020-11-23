@@ -163,8 +163,9 @@ class Monitor (threading.Thread):
 
     def run(self):
         index = 0;
-        exit = 0;
-        while exit == 0:
+	global EXIT_FLAG
+        ef = 0;
+        while ef == 0:
             ip_ping = self.ip_list[index]
             process = subprocess.Popen(['ping', ip_ping, '-c', str(self.ping_c), '-W', str(self.ping_o)],
                     stdout = subprocess.PIPE,
@@ -186,7 +187,7 @@ class Monitor (threading.Thread):
             time.sleep(2)
 
             self.lock.acquire()
-            exit = EXIT_FLAG
+            ef = EXIT_FLAG
             self.lock.release()
         log_local('%s exits' % self.name)
 
@@ -202,10 +203,10 @@ class msgSender (threading.Thread):
 
     def run(self):
         ip_crash = None
+	global EXIT_FLAG
+        exit_flag = 0;
 
-        exit = 0;
-
-        while exit == 0:
+        while exit_flag == 0:
 
             self.lock.acquire()
             if self.queue.qsize():
@@ -258,7 +259,7 @@ class msgSender (threading.Thread):
             time.sleep(0.5)
 
             self.lock.acquire()
-            exit = EXIT_FLAG
+            exit_flag = EXIT_FLAG
             self.lock.release()
 
         log_local('%s exits' % self.name)
@@ -280,18 +281,18 @@ for i in range(len(task_list)):
     t_list.append(t_tmp)
     t_tmp.start()
 
-while 1:
-    time.sleep(30)
-#try:
-#conn_t.join()
-#except KeyboardInterrupt:
-#    lock.acquire()
-#    EXIT_FLAG = 1
-#    lock.release()
-#
-#conn_t.join()
-#for t in t_list:
-#    t.join()
-#
-#log_local('all cleaned')
+try:
+	while 1:
+    		time.sleep(5)
+except KeyboardInterrupt as e:
+	pass
+lock.acquire()
+EXIT_FLAG = 1
+lock.release()
+
+conn_t.join()
+for t in t_list:
+    t.join()
+
+log_local('all cleaned')
 #sys.exit(0)
