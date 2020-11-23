@@ -162,8 +162,9 @@ class Monitor (threading.Thread):
 
     def run(self):
         index = 0;
-        exit = 0;
-        while exit == 0:
+	global EXIT_FLAG
+        exitflag = 0;
+        while exitflag == 0:
             ip_ping = self.ip_list[index]
             process = subprocess.Popen(['ping', ip_ping, '-c', str(self.ping_c), '-W', str(self.ping_o)],
                     stdout = subprocess.PIPE,
@@ -185,7 +186,7 @@ class Monitor (threading.Thread):
             time.sleep(2)
 
             self.lock.acquire()
-            exit = EXIT_FLAG
+            exitflag = EXIT_FLAG
             self.lock.release()
         log_local('%s exits' % self.name)
 
@@ -201,10 +202,10 @@ class msgSender (threading.Thread):
 
     def run(self):
         ip_crash = None
+        global EXIT_FLAG
+        exitflag = 0;
 
-        exit = 0;
-
-        while exit == 0:
+        while exitflag == 0:
 
             self.lock.acquire()
             if self.queue.qsize():
@@ -257,7 +258,7 @@ class msgSender (threading.Thread):
             time.sleep(0.5)
 
             self.lock.acquire()
-            exit = EXIT_FLAG
+            exitflag = EXIT_FLAG
             self.lock.release()
 
         log_local('%s exits' % self.name)
@@ -283,10 +284,12 @@ for i in range(len(task_list)):
 
 try:
     conn_t.join()
-except KeyboardInterrupt:
-    lock.acquire()
-    EXIT_FLAG = 1
-    lock.release()
+except KeyboardInterrupt as e:
+    log_local('ctrl c interrupt')
+    pass
+lock.acquire()
+EXIT_FLAG = 1
+lock.release()
 
 conn_t.join()
 for t in t_list:
