@@ -21,8 +21,6 @@ def time_now_str():
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 def log_local(s):
-    print(s)
-    return
     year_month = datetime.datetime.now().strftime("%Y-%m")
     logfile = '/tmp/monitor_{0}.log'.format(year_month)
     with open(logfile, 'a+') as log:
