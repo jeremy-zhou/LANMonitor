@@ -178,10 +178,20 @@ class Monitor (threading.Thread):
                 self.ip_state[ip_ping] = returncode
             else:
                 self.ip_state[ip_ping] = self.ip_state[ip_ping] + 1
-                if self.ip_state[ip_ping] == self.pulse:
+                if self.ip_state[ip_ping] == 1:
                     c_field = {}
                     c_field['name'] = ip_ping
                     c_field['time'] = datetime.datetime.now().strftime("%Y-%m-%d^%H:%M:%S")
+                    c_field['event'] = 'offline'
+                    self.lock.acquire()
+                    self.queue.put(c_field) 
+                    log_local('%s is offline' % ip_ping)
+                    self.lock.release()
+                elif self.ip_state[ip_ping] == self.pulse:
+                    c_field = {}
+                    c_field['name'] = ip_ping
+                    c_field['time'] = datetime.datetime.now().strftime("%Y-%m-%d^%H:%M:%S")
+                    c_field['event'] = 'crash'
                     self.lock.acquire()
                     self.queue.put(c_field) 
                     log_local('%s is down' % ip_ping)
@@ -251,8 +261,9 @@ class msgSender (threading.Thread):
                 crash_data['$timestamp'] = int(time.time())
                 crash_data['$log_type'] = self.conf['$log_type']
                 crash_data['area'] = self.conf['area']
-                crash_data['machine_name'] = ip_crash['name']
-                crash_data['time'] = ip_crash['time']
+                crash_data['ip'] = ip_crash['name']
+                #crash_data['time'] = ip_crash['time']
+                crash_data['event'] = ip_crash['event']
                 encoding(report, crash_data, self.packet_type, tcp_sock)
 
                 tcp_sock.close()
