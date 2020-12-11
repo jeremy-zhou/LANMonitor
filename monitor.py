@@ -22,7 +22,9 @@ def time_now_str():
 def log_local(s):
     print(s)
     return
-    with open('/tmp/monitor.log', 'a+', encoding='utf8') as log:
+    year_month = datetime.datetime.now().strftime("%Y-%m")
+    logfile = '/tmp/monitor_{0}.log'.format(year_month)
+    with open(logfile, 'a+', encoding='utf8') as log:
         log.write('%s ' % time_now_str())
         log.write('%s\n' % s)
 
